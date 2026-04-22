@@ -12,7 +12,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
-void setViewParams();
+void setViewParamsAndScreenSize();
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -37,6 +37,7 @@ Shader* pathtracingShader;
 
 struct Material {
     glm::vec4 color;
+    glm::vec4 emission;
 };
 
 struct Sphere {
@@ -45,10 +46,18 @@ struct Sphere {
     Material material;
 };
 
+struct SceneBuffer {
+    int numSpheres;
+    float padding[3];
+    Sphere spheres[];
+};
+
 std::vector<Sphere> spheres = {
-    { glm::vec3(0, 0, 5), 1, { glm::vec4(1, 0, 0, 1) } },
-    { glm::vec3(2, 0, 5), 1, { glm::vec4(0, 1, 0, 1) } },
-    { glm::vec3(-2, 0, 5), 1, { glm::vec4(0, 0, 1, 1) } }
+    { glm::vec3(0, 0, 6), 0.6f, { glm::vec4(1, 0, 0, 1), glm::vec4(0, 0, 0, 0) } },
+    { glm::vec3(2, 0, 6), 0.6f, { glm::vec4(0, 1, 0, 1), glm::vec4(0, 0, 0, 0) } },
+    { glm::vec3(-2, 0, 6), 0.6f, { glm::vec4(0, 0, 1, 1), glm::vec4(0, 0, 0, 0) } },
+    { glm::vec3(0, 2, 6), 0.2f, { glm::vec4(1, 1, 1, 1), glm::vec4(1, 1, 1, 1) } },
+    { glm::vec3(0, -1000, 6), 1000, { glm::vec4(1, 1, 1, 1), glm::vec4(1, 1, 1, 0) } }
 };  
 
 int main()
@@ -99,12 +108,17 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(0);
 
+    SceneBuffer sceneBuffer;
+    sceneBuffer.numSpheres = spheres.size();
+    std::copy(spheres.begin(), spheres.end(), sceneBuffer.spheres);
+
     unsigned int sceneDataBuffer;
     glGenBuffers(1, &sceneDataBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, sceneDataBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, spheres.size() * sizeof(Sphere), spheres.data(), GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 16 + spheres.size() * sizeof(Sphere), &sceneBuffer, GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, sceneDataBuffer);
 
+    unsigned int frameCount = 0;
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -121,13 +135,16 @@ int main()
         pathtracingShader->use();
         pathtracingShader->setMat4("camLocalToWorldMatrix", camera.GetLocalToWorldMatrix());
         pathtracingShader->setVec3("camPosWorld", camera.Position);
-        setViewParams();
+        setViewParamsAndScreenSize();
+        pathtracingShader->setInt("frameIndex", frameCount);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        frameCount++;
     }
 
     glDeleteVertexArrays(1, &VAO);
@@ -180,8 +197,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     screenHeight = height;
 }
 
-void setViewParams()
+void setViewParamsAndScreenSize()
 {
     float aspect = (float)screenHeight / screenWidth;
     pathtracingShader->setVec3("viewParams", glm::vec3(1, aspect, 1));
+    pathtracingShader->setVec2("screenSize", glm::vec2(screenWidth, screenHeight));
 }
