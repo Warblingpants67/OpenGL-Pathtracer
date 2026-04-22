@@ -12,6 +12,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+void setViewParams();
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -26,6 +27,13 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+// window
+unsigned int screenWidth;
+unsigned int screenHeight;
+
+// shaders
+Shader* pathtracingShader;
 
 int main()
 {
@@ -44,13 +52,16 @@ int main()
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    screenWidth = SCR_WIDTH;
+    screenHeight = SCR_HEIGHT;
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    Shader ourShader("shaders/vertex.vs", "shaders/fragment.fs");
+    pathtracingShader = new Shader("shaders/vertex.vs", "shaders/fragment.fs");
 
     float vertices[] = {
         -1.0f, -1.0f, 0.0f,     // bottom left  
@@ -74,13 +85,20 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
         processInput(window);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // render the triangle
-        ourShader.use();
+        pathtracingShader->use();
+        pathtracingShader->setMat4("camLocalToWorldMatrix", camera.GetLocalToWorldMatrix());
+        pathtracingShader->setVec3("camPosWorld", camera.Position);
+        setViewParams();
+
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -134,4 +152,12 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+    screenWidth = width;
+    screenHeight = height;
+}
+
+void setViewParams()
+{
+    float aspect = (float)screenHeight / screenWidth;
+    pathtracingShader->setVec3("viewParams", glm::vec3(1, aspect, 1));
 }

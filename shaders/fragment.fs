@@ -2,9 +2,9 @@
 out vec4 FragColor;  
 
 in vec2 uv;
-in vec3 viewParams;
-in vec3 camPosWorld;
-in mat4 camLocalToWorldMatrix;
+uniform vec3 viewParams;
+uniform vec3 camPosWorld;
+uniform mat4 camLocalToWorldMatrix;
 
 struct Ray {
     vec3 origin;
@@ -21,6 +21,7 @@ struct HitInfo {
 HitInfo RaySphere(Ray ray, vec3 sphereOrigin, float sphereRadius)
 {
     HitInfo hitInfo;
+    hitInfo.hit = false;
     vec3 rayOriginRelativeToSphere = ray.origin - sphereOrigin;
 
     float a = dot(ray.dir, ray.dir);
@@ -54,5 +55,7 @@ void main()
     ray.origin = camPosWorld;
     ray.dir = normalize(viewPointWorld - ray.origin);
 
-    FragColor = vec4(RaySphere(ray, vec3(0, 0, 5), 1).hit, 0, 0, 0);
+    HitInfo hitSphere = RaySphere(ray, vec3(0, 0, 5), 1);
+    if (hitSphere.hit) { FragColor = vec4(1, 1, 1, 1); }
+    else { FragColor = vec4(ray.dir, 1); }
 }

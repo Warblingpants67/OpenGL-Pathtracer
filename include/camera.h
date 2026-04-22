@@ -84,6 +84,18 @@ public:
         updateCameraVectors();
     }
 
+    glm::mat4 GetLocalToWorldMatrix()
+    {
+        glm::mat4 world = glm::mat4(1.0f);
+        
+        world[0] = glm::vec4(Right, 0.0f);
+        world[1] = glm::vec4(Up, 0.0f);
+        world[2] = glm::vec4(-Front, 0.0f);
+        world[3] = glm::vec4(Position, 1.0f);
+
+        return world;
+    }
+
 private:
     void updateCameraVectors()
     {
