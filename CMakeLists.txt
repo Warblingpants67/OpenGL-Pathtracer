@@ -40,12 +40,15 @@ endif()
 # Define the assets folder
 set(ASSET_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
-# Create a command that runs AFTER the executable is built
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+# Create a custom target that always syncs shaders
+add_custom_target(sync_shaders ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${ASSET_FOLDER}"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders"
+        "${CMAKE_CURRENT_BINARY_DIR}/shaders"
     COMMENT "Syncing shaders to build directory..."
 )
+
+# Make the executable depend on syncing shaders
+add_dependencies(${PROJECT_NAME} sync_shaders)
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -O3)
