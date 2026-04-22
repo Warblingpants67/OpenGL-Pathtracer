@@ -18,6 +18,21 @@ struct HitInfo {
     vec3 normal;
 };
 
+struct Material {
+    vec4 color;
+};
+
+struct Sphere {
+    vec3 position;
+    float radius;
+    Material material;
+};
+
+layout(std140) uniform SceneData {
+    int numSpheres;
+    Sphere spheres[];
+};
+
 HitInfo RaySphere(Ray ray, vec3 sphereOrigin, float sphereRadius)
 {
     HitInfo hitInfo;
@@ -45,6 +60,25 @@ HitInfo RaySphere(Ray ray, vec3 sphereOrigin, float sphereRadius)
 
     return hitInfo;
 }
+
+HitInfo CalculateRayCollision(Ray ray)
+{
+    HitInfo closestHit;
+    closestHit.hit = false;
+    closestHit.dist = 1e20;
+
+    for (int i = 0; i < numSpheres; i++)
+    {
+        HitInfo hitInfo = RaySphere(ray, spheres[i].position, spheres[i].radius);
+        if (hitInfo.hit && hitInfo.dist < closestHit.dist)
+        {
+            closestHit = hitInfo;
+            closestHit.material = spheres[i].material;
+        }
+    }
+
+    return closestHit;
+}
   
 void main()
 {
@@ -55,7 +89,7 @@ void main()
     ray.origin = camPosWorld;
     ray.dir = normalize(viewPointWorld - ray.origin);
 
-    HitInfo hitSphere = RaySphere(ray, vec3(0, 0, 5), 1);
-    if (hitSphere.hit) { FragColor = vec4(1, 1, 1, 1); }
+    HitInfo hitSphere = CalculateRayCollision(ray);
+    if (hitSphere.hit) { FragColor = hitSphere.material.color; }
     else { FragColor = vec4(ray.dir, 1); }
 }

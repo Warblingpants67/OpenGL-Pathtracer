@@ -35,12 +35,28 @@ unsigned int screenHeight;
 // shaders
 Shader* pathtracingShader;
 
+struct Material {
+    glm::vec4 color;
+};
+
+struct Sphere {
+    glm::vec3 position;
+    float radius;
+    Material material;
+};
+
+std::vector<Sphere> spheres = {
+    { glm::vec3(0, 0, 5), 1, { glm::vec4(1, 0, 0, 1) } },
+    { glm::vec3(2, 0, 5), 1, { glm::vec4(0, 1, 0, 1) } },
+    { glm::vec3(-2, 0, 5), 1, { glm::vec4(0, 0, 1, 1) } }
+};  
+
 int main()
 {
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Raytracer", NULL, NULL);
     if (window == NULL)
@@ -83,11 +99,19 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(0);
 
+    unsigned int sceneDataBuffer;
+    glGenBuffers(1, &sceneDataBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, sceneDataBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, spheres.size() * sizeof(Sphere), spheres.data(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, sceneDataBuffer);
+
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        std::cout << "\rFPS: " << (1 / deltaTime);
 
         processInput(window);
 
